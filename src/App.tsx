@@ -1,18 +1,42 @@
-import { useState } from 'react'
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import { useState } from "react";
+
+interface Employee {
+  id: number;
+  firstname: string;
+  lastname: string;
+  salary: number;
+}
 
 function App() {
-  const [firstname, setFirstname] = useState('')
-  const [lastname, setLastname] = useState('')
+  const [isVisible, setIsVisible] = useState<boolean>(true);
+  const [person, setPerson] = useState<Employee>({
+    id: 1,
+    firstname: "",
+    lastname: "",
+    salary: 0,
+  });
 
   return (
     <>
-      <h1>Hello World!!</h1>
-      <input type="text" value={firstname} onChange={(e) => setFirstname(e.target.value)} placeholder='First name' />
-      <input type="text" value={lastname} onChange={(e) => setLastname(e.target.value)} placeholder='Last name' />
-      <p>Firstname: {firstname}</p>
-      <p>Lastname: {lastname}</p>
+      <button onClick={() => setIsVisible(!isVisible)}>{isVisible ? "Hide" : "Show"}</button>
+      {isVisible && (
+        <div>
+          <p>Employee ID: {person.id}</p>
+          <p>Firstname: {person.firstname}</p>
+          <p>Lastname: {person.lastname}</p>
+          <p>Salary: {person.salary}</p>
+          <button onClick={() =>setPerson(data=>({
+            ...data,
+            firstname: "John",
+            lastname: "Doe",
+            salary: 50000,
+          }))}>Edit</button>
+        </div>
+      )}
+      <hr />
     </>
-  )
+  );
 }
 
-export default App
+export default App;
