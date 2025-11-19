@@ -1,0 +1,61 @@
+/* src/theme.css */
+body.light {
+  background-color: #ffffff;
+  color: #000000;
+}
+
+body.dark {
+  background-color: #121212;
+  color: #ffffff;
+}
+
+button {
+  padding: 8px 16px;
+  margin: 8px;
+  cursor: pointer;
+  border: none;
+  border-radius: 4px;
+}
+
+body.dark .react-calendar {
+  background-color: #1e1e1e;
+  color: #ffffff;
+  border: 1px solid #444;
+}
+
+body.dark .react-calendar__tile {
+  background: transparent;
+  color: #ffffff;
+}
+
+body.dark .react-calendar__tile--active {
+  background: #444;
+  color: #fff;
+}
+
+body.dark .react-calendar__tile--now {
+  background: #333;
+  color: #ffcc00;
+}
+
+/* กล่องโน้ตใน light mode */
+body.light .note-box {
+  background-color: #f0f0f0;
+  color: #000;
+  padding: 0.5rem;
+  border-radius: 4px;
+}
+
+/* กล่องโน้ตใน dark mode */
+body.dark .note-box {
+  background-color: #2a2a2a;
+  color: #fff;
+  padding: 0.5rem;
+  border-radius: 4px;
+}
+
+body {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+

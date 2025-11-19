@@ -5,7 +5,7 @@ interface HeaderProps {
 const Header = ({title}:HeaderProps) => {
     return (
         <>
-            <h1>🦄{title}</h1>
+            <h1>📊 {title}</h1>
             <hr />
         </>
     )

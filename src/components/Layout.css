@@ -1,0 +1,95 @@
+/* src/components/Layout.css */
+body.dark .sidebar { background-color: #1e1e1e; color: #fff; }
+
+.layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+.content {
+  flex: 1;
+  padding: 2rem;
+  padding-top: 56px; /* เว้นให้พ้น topbar */
+  transition: margin-left 0.3s ease;
+}
+
+.sidebar {
+  position: fixed;
+  top: 26px;
+  left: 0;
+  bottom: 0;
+  width: 200px;
+  background-color: var(--sidebar-bg, #f4f4f4);
+  padding: 1rem;
+  transition: transform 0.3s ease;
+  z-index: 999;
+}
+
+.sidebar a {
+  display: block;
+  margin: 0.5rem 0;
+  text-decoration: none;
+  color: inherit;
+}
+
+.sidebar a.active {
+  font-weight: bold;
+  color: #007bff;
+}
+
+.sidebar-toggle {
+  top: 1rem;
+  left: 1rem;
+  z-index: 1000;
+  font-size: 1.5rem;
+  padding: 0.4rem 0.6rem;
+  background: #fff;
+  border: 1px solid #ccc;
+  cursor: pointer;
+  background: none;
+  border: none;
+  color: inherit;
+}
+
+.sidebar.closed {
+  transform: translateX(-240px);
+}
+
+.layout.sidebar-open .content {
+  margin-left: 200px;
+  transition: margin-left 0.3s ease;
+}
+
+.layout.sidebar-closed .content {
+  margin-left: 0;
+  transition: margin-left 0.3s ease;
+}
+
+.topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 56px;
+  background-color: #fff;
+  display: flex;
+  align-items: center;
+  padding: 0 1rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  z-index: 1001;
+}
+
+body.dark .topbar {
+  background-color: #1e1e1e;
+  color: #fff;
+}
+
+body.dark .sidebar {
+  background-color: #1e1e1e;
+  color: #fff;
+}
+
+.app-title {
+  margin-left: 1rem;
+  font-size: 1.2rem;
+}
