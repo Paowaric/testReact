@@ -1,0 +1,115 @@
+/* src/styles/auth.css */
+
+.auth-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-md);
+    background: linear-gradient(135deg, var(--primary-500) 0%, var(--primary-700) 100%);
+}
+
+.auth-card {
+    background-color: var(--bg-card);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-xl);
+    width: 100%;
+    max-width: 420px;
+    overflow: hidden;
+    animation: slideUp var(--transition-normal) ease;
+}
+
+.auth-header {
+    background: var(--gradient-primary);
+    color: white;
+    text-align: center;
+    padding: var(--space-xl);
+}
+
+.auth-logo {
+    font-size: 4rem;
+    margin-bottom: var(--space-sm);
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.auth-header h1 {
+    color: white;
+    font-size: 1.75rem;
+    margin-bottom: var(--space-xs);
+}
+
+.auth-header p {
+    opacity: 0.9;
+    font-size: 0.9rem;
+}
+
+.auth-form {
+    padding: var(--space-xl);
+}
+
+.auth-form h2 {
+    text-align: center;
+    margin-bottom: var(--space-lg);
+    color: var(--text-primary);
+}
+
+.auth-form .form-group {
+    margin-bottom: var(--space-md);
+}
+
+.auth-submit {
+    width: 100%;
+    padding: var(--space-md);
+    font-size: 1rem;
+    margin-top: var(--space-md);
+}
+
+.auth-link {
+    text-align: center;
+    margin-top: var(--space-lg);
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+.auth-link a {
+    color: var(--primary-500);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.auth-link a:hover {
+    text-decoration: underline;
+}
+
+.auth-hint {
+    margin-top: var(--space-lg);
+    padding: var(--space-md);
+    background-color: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.auth-hint p {
+    margin: var(--space-xs) 0;
+}
+
+.auth-hint strong {
+    color: var(--text-primary);
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .auth-card {
+        max-width: 100%;
+    }
+
+    .auth-header {
+        padding: var(--space-lg);
+    }
+
+    .auth-form {
+        padding: var(--space-lg);
+    }
+}

@@ -1,18 +1,19 @@
-// src/pages/LoginPage.tsx
+// src/pages/RegisterPage.tsx
 import { useState } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import '../styles/auth.css';
 
-export default function LoginPage() {
+export default function RegisterPage() {
+    const [name, setName] = useState('');
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
-    const { login, isAuthenticated } = useAuth();
+    const { register, isAuthenticated } = useAuth();
     const navigate = useNavigate();
-    const location = useLocation();
 
     // Redirect if already logged in
     if (isAuthenticated) {
@@ -20,19 +21,30 @@ export default function LoginPage() {
         return null;
     }
 
-    const from = location.state?.from?.pathname || '/';
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
+
+        if (password !== confirmPassword) {
+            setError('รหัสผ่านไม่ตรงกัน');
+            return;
+        }
+
+        if (password.length < 4) {
+            setError('รหัสผ่านต้องมีอย่างน้อย 4 ตัวอักษร');
+            return;
+        }
+
         setLoading(true);
 
         try {
-            const success = await login(username, password);
+            const success = await register(username, password, name, 'staff');
             if (success) {
-                navigate(from, { replace: true });
+                navigate('/login', {
+                    state: { message: 'สมัครสมาชิกสำเร็จ กรุณาเข้าสู่ระบบ' }
+                });
             } else {
-                setError('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
+                setError('ชื่อผู้ใช้นี้มีอยู่แล้ว');
             }
         } finally {
             setLoading(false);
@@ -49,13 +61,26 @@ export default function LoginPage() {
                 </div>
 
                 <form onSubmit={handleSubmit} className="auth-form">
-                    <h2>เข้าสู่ระบบ</h2>
+                    <h2>สมัครสมาชิก</h2>
 
                     {error && (
                         <div className="alert alert-danger">
                             {error}
                         </div>
                     )}
+
+                    <div className="form-group">
+                        <label className="form-label">ชื่อ-นามสกุล</label>
+                        <input
+                            type="text"
+                            className="input"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            placeholder="กรอกชื่อ-นามสกุล"
+                            required
+                            autoFocus
+                        />
+                    </div>
 
                     <div className="form-group">
                         <label className="form-label">ชื่อผู้ใช้</label>
@@ -66,7 +91,6 @@ export default function LoginPage() {
                             onChange={(e) => setUsername(e.target.value)}
                             placeholder="กรอกชื่อผู้ใช้"
                             required
-                            autoFocus
                         />
                     </div>
 
@@ -77,7 +101,19 @@ export default function LoginPage() {
                             className="input"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            placeholder="กรอกรหัสผ่าน"
+                            placeholder="กรอกรหัสผ่าน (อย่างน้อย 4 ตัว)"
+                            required
+                        />
+                    </div>
+
+                    <div className="form-group">
+                        <label className="form-label">ยืนยันรหัสผ่าน</label>
+                        <input
+                            type="password"
+                            className="input"
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            placeholder="กรอกรหัสผ่านอีกครั้ง"
                             required
                         />
                     </div>
@@ -87,17 +123,12 @@ export default function LoginPage() {
                         className="btn btn-primary auth-submit"
                         disabled={loading}
                     >
-                        {loading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'}
+                        {loading ? 'กำลังสมัคร...' : 'สมัครสมาชิก'}
                     </button>
 
                     <p className="auth-link">
-                        ยังไม่มีบัญชี? <Link to="/register">สมัครสมาชิก</Link>
+                        มีบัญชีแล้ว? <Link to="/login">เข้าสู่ระบบ</Link>
                     </p>
-
-                    <div className="auth-hint">
-                        <p>ทดสอบระบบ:</p>
-                        <p><strong>Admin:</strong> admin / admin123</p>
-                    </div>
                 </form>
             </div>
         </div>

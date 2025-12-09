@@ -1,0 +1,139 @@
+/* src/styles/stock.css */
+
+.stock-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-md);
+    margin-bottom: var(--space-xl);
+}
+
+.stock-stats .stat-card {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+.stock-search {
+    margin-bottom: var(--space-lg);
+    max-width: 400px;
+}
+
+.stock-search .search-input input {
+    padding-left: 2.5rem;
+}
+
+.stock-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--space-lg);
+}
+
+/* Stock Card */
+.stock-card {
+    display: flex;
+    flex-direction: column;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.stock-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.stock-card.low-stock {
+    border-color: var(--error-500);
+    border-width: 2px;
+}
+
+.stock-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-md) var(--space-lg);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.stock-card-header h3 {
+    font-size: 1.1rem;
+    margin: 0;
+}
+
+.stock-actions {
+    display: flex;
+    gap: var(--space-xs);
+}
+
+.stock-card-body {
+    padding: var(--space-lg);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.price-display {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-xs);
+}
+
+.price {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--primary-600);
+}
+
+.unit {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+.stock-display {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-sm);
+    background-color: var(--bg-secondary);
+    border-radius: var(--radius-sm);
+}
+
+.stock-label {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.stock-value {
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.stock-card-footer {
+    display: flex;
+    gap: var(--space-xs);
+    padding: var(--space-md) var(--space-lg);
+    border-top: 1px solid var(--border-color);
+    background-color: var(--bg-secondary);
+}
+
+.stock-card-footer .btn {
+    flex: 1;
+    padding: var(--space-sm);
+    font-size: 0.9rem;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .stock-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .stock-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .stock-grid {
+        grid-template-columns: 1fr;
+    }
+}

@@ -1,0 +1,164 @@
+/* src/styles/calendar.css */
+
+.calendar-layout {
+    display: grid;
+    grid-template-columns: 400px 1fr;
+    gap: var(--space-xl);
+    align-items: start;
+}
+
+.calendar-section .card-body {
+    padding: var(--space-md);
+}
+
+/* Override react-calendar styles */
+.react-calendar {
+    width: 100% !important;
+    border: none !important;
+    background-color: transparent !important;
+    font-family: var(--font-sans) !important;
+}
+
+.react-calendar__navigation {
+    margin-bottom: var(--space-md);
+}
+
+.react-calendar__navigation button {
+    font-size: 1rem;
+    color: var(--text-primary);
+    background: transparent;
+}
+
+.react-calendar__navigation button:hover {
+    background-color: var(--bg-hover) !important;
+}
+
+.react-calendar__navigation button:disabled {
+    background-color: transparent !important;
+    color: var(--text-muted);
+}
+
+.react-calendar__month-view__weekdays {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+}
+
+.react-calendar__month-view__weekdays abbr {
+    text-decoration: none;
+}
+
+.react-calendar__tile {
+    padding: var(--space-md) !important;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    border-radius: var(--radius-md);
+    position: relative;
+}
+
+.react-calendar__tile:hover {
+    background-color: var(--bg-hover) !important;
+}
+
+.react-calendar__tile--now {
+    background-color: var(--bg-tertiary) !important;
+    font-weight: 600;
+}
+
+.react-calendar__tile--active {
+    background: var(--gradient-primary) !important;
+    color: white !important;
+}
+
+.react-calendar__tile--active:hover {
+    background: var(--gradient-primary) !important;
+}
+
+.calendar-dot {
+    width: 6px;
+    height: 6px;
+    background-color: var(--success-500);
+    border-radius: 50%;
+    position: absolute;
+    bottom: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+/* Notes Section */
+.notes-section {
+    min-height: 400px;
+}
+
+.notes-section .card-header {
+    flex-wrap: wrap;
+}
+
+.notes-section .card-header h3 {
+    font-size: 1.1rem;
+    margin: 0;
+}
+
+.notes-count {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    margin-top: var(--space-xs);
+}
+
+.notes-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.note-card {
+    padding: var(--space-md);
+    background-color: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    border-left: 4px solid var(--primary-500);
+}
+
+.note-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: var(--space-sm);
+}
+
+.note-header h4 {
+    font-size: 1rem;
+    margin: 0;
+}
+
+.note-actions {
+    display: flex;
+    gap: var(--space-xs);
+}
+
+.note-content {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: var(--space-sm);
+    white-space: pre-wrap;
+}
+
+.note-time {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+    .calendar-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .calendar-section {
+        order: 1;
+    }
+
+    .notes-section {
+        order: 2;
+    }
+}
