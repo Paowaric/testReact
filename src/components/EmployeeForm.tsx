@@ -25,7 +25,7 @@ export default function EmployeeForm({ employee, onSubmit, onCancel }: EmployeeF
         }
     }, [employee]);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
 
@@ -34,17 +34,32 @@ export default function EmployeeForm({ employee, onSubmit, onCancel }: EmployeeF
             return;
         }
 
-        if (employee) {
-            EmployeeService.update(employee.id, { name, phone, baseDailyWage, notes });
-        } else {
-            EmployeeService.create({ name, phone, baseDailyWage, notes });
+        if (phone && !/^\d{10}$/.test(phone)) {
+            setError('เบอร์โทรศัพท์ต้องเป็นตัวเลข 10 หลัก');
+            return;
         }
 
-        onSubmit();
+        if (baseDailyWage <= 0) {
+            setError('ค่าแรงต้องมากกว่า 0');
+            return;
+        }
+
+        try {
+            if (employee) {
+                await EmployeeService.update(employee.id, { name, phone, baseDailyWage, notes });
+            } else {
+                await EmployeeService.create({ name, phone, baseDailyWage, notes });
+            }
+
+            onSubmit();
+        } catch (error) {
+            console.error('Failed to save employee:', error);
+            setError('เกิดข้อผิดพลาดในการบันทึก');
+        }
     };
 
     return (
-        <div className="modal-overlay" onClick={onCancel}>
+        <div className="modal-overlay">
             <div className="modal" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-header">
                     <h3 className="modal-title">{employee ? '✏️ แก้ไขพนักงาน' : '➕ เพิ่มพนักงาน'}</h3>

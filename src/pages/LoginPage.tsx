@@ -1,5 +1,5 @@
 // src/pages/LoginPage.tsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import '../styles/auth.css';
@@ -15,10 +15,13 @@ export default function LoginPage() {
     const location = useLocation();
 
     // Redirect if already logged in
-    if (isAuthenticated) {
-        navigate('/');
-        return null;
-    }
+    useEffect(() => {
+        if (isAuthenticated) {
+            navigate('/', { replace: true });
+        }
+    }, [isAuthenticated, navigate]);
+
+    if (isAuthenticated) return null;
 
     const from = location.state?.from?.pathname || '/';
 
@@ -28,11 +31,11 @@ export default function LoginPage() {
         setLoading(true);
 
         try {
-            const success = await login(username, password);
-            if (success) {
+            const result = await login(username, password);
+            if (result.success) {
                 navigate(from, { replace: true });
             } else {
-                setError('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
+                setError(result.error || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
             }
         } finally {
             setLoading(false);

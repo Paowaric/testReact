@@ -1,15 +1,16 @@
 // src/components/OrderTable.tsx
-import type { Order } from '../types/types';
+import type { Order, Customer } from '../types/types';
 import '../styles/orders.css';
 
 interface OrderTableProps {
     orders: Order[];
+    customers: Customer[];
     onEdit: (order: Order) => void;
     onDelete: (id: string) => void;
     onUpdateStatus: (id: string, status: Order['status']) => void;
 }
 
-export default function OrderTable({ orders, onEdit, onDelete, onUpdateStatus }: OrderTableProps) {
+export default function OrderTable({ orders, customers, onEdit, onDelete, onUpdateStatus }: OrderTableProps) {
     const getStatusBadge = (status: Order['status']) => {
         switch (status) {
             case 'pending':
@@ -19,6 +20,11 @@ export default function OrderTable({ orders, onEdit, onDelete, onUpdateStatus }:
             case 'cancelled':
                 return <span className="badge badge-danger">❌ ยกเลิก</span>;
         }
+    };
+
+    const getCustomerName = (customerId: string, fallbackName: string) => {
+        const customer = customers.find(c => String(c.id) === String(customerId));
+        return customer ? customer.name : fallbackName;
     };
 
     const formatDate = (dateString: string) => {
@@ -61,7 +67,7 @@ export default function OrderTable({ orders, onEdit, onDelete, onUpdateStatus }:
                             <td>{formatDate(order.createdAt)}</td>
                             <td>
                                 <div className="customer-cell">
-                                    <strong>{order.customerName}</strong>
+                                    <strong>{getCustomerName(order.customerId, order.customerName)}</strong>
                                     {order.notes && <small className="order-notes">{order.notes}</small>}
                                 </div>
                             </td>
@@ -93,10 +99,22 @@ export default function OrderTable({ orders, onEdit, onDelete, onUpdateStatus }:
                             </td>
                             <td>
                                 <div className="action-buttons">
-                                    <button className="btn btn-ghost btn-icon" onClick={() => onEdit(order)} title="แก้ไข">
+                                    <button
+                                        className="btn btn-ghost btn-icon"
+                                        onClick={() => onEdit(order)}
+                                        title="แก้ไข"
+                                        disabled={order.status === 'completed' || order.status === 'cancelled'}
+                                        style={{ opacity: order.status === 'completed' || order.status === 'cancelled' ? 0.3 : 1 }}
+                                    >
                                         ✏️
                                     </button>
-                                    <button className="btn btn-ghost btn-icon" onClick={() => onDelete(order.id)} title="ลบ">
+                                    <button
+                                        className="btn btn-ghost btn-icon"
+                                        onClick={() => onDelete(order.id)}
+                                        title="ลบ"
+                                        disabled={order.status === 'completed'}
+                                        style={{ opacity: order.status === 'completed' ? 0.3 : 1 }}
+                                    >
                                         🗑️
                                     </button>
                                 </div>

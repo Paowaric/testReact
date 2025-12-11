@@ -15,6 +15,7 @@ export default function CalendarPage() {
     const [dayNotes, setDayNotes] = useState<CalendarNote[]>([]);
     const [showForm, setShowForm] = useState(false);
     const [editingNote, setEditingNote] = useState<CalendarNote | null>(null);
+    const [loading, setLoading] = useState(true);
 
     // Form state
     const [title, setTitle] = useState('');
@@ -28,13 +29,26 @@ export default function CalendarPage() {
         loadDayNotes();
     }, [selectedDate]);
 
-    const loadAllNotes = () => {
-        setAllNotes(CalendarNoteService.getAll());
+    const loadAllNotes = async () => {
+        try {
+            setLoading(true);
+            const notes = await CalendarNoteService.getAll();
+            setAllNotes(notes);
+        } catch (error) {
+            console.error('Failed to load notes:', error);
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const loadDayNotes = () => {
-        const dateStr = formatDateKey(selectedDate);
-        setDayNotes(CalendarNoteService.getByDate(dateStr));
+    const loadDayNotes = async () => {
+        try {
+            const dateStr = formatDateKey(selectedDate);
+            const notes = await CalendarNoteService.getByDate(dateStr);
+            setDayNotes(notes);
+        } catch (error) {
+            console.error('Failed to load day notes:', error);
+        }
     };
 
     const formatDateKey = (date: Date): string => {
@@ -65,29 +79,42 @@ export default function CalendarPage() {
         setShowForm(true);
     };
 
-    const handleDeleteNote = (id: string) => {
+    const handleDeleteNote = async (id: string) => {
         if (confirm('ต้องการลบบันทึกนี้?')) {
-            CalendarNoteService.delete(id);
+            await CalendarNoteService.delete(id);
             loadAllNotes();
             loadDayNotes();
         }
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const [error, setError] = useState('');
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setError('');
 
-        const dateStr = formatDateKey(selectedDate);
-
-        if (editingNote) {
-            CalendarNoteService.update(editingNote.id, { title, content });
-        } else {
-            CalendarNoteService.create({ date: dateStr, title, content });
+        if (!title.trim()) {
+            setError('กรุณากรอกหัวข้อบันทึก');
+            return;
         }
 
-        setShowForm(false);
-        resetForm();
-        loadAllNotes();
-        loadDayNotes();
+        try {
+            const dateStr = formatDateKey(selectedDate);
+
+            if (editingNote) {
+                await CalendarNoteService.update(editingNote.id, { title, content });
+            } else {
+                await CalendarNoteService.create({ date: dateStr, title, content });
+            }
+
+            setShowForm(false);
+            resetForm();
+            loadAllNotes();
+            loadDayNotes();
+        } catch (error) {
+            console.error('Failed to save note:', error);
+            setError('เกิดข้อผิดพลาดในการบันทึก');
+        }
     };
 
     const tileContent = ({ date }: { date: Date }) => {
@@ -107,6 +134,17 @@ export default function CalendarPage() {
             year: 'numeric',
         });
     };
+
+    if (loading) {
+        return (
+            <div className="page-container">
+                <div className="loading-container">
+                    <div className="loading-spinner">🐔</div>
+                    <p>กำลังโหลดข้อมูล...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="page-container">
@@ -180,7 +218,7 @@ export default function CalendarPage() {
 
             {/* Add/Edit Form Modal */}
             {showForm && (
-                <div className="modal-overlay" onClick={() => setShowForm(false)}>
+                <div className="modal-overlay">
                     <div className="modal" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
                             <h3 className="modal-title">{editingNote ? '✏️ แก้ไขบันทึก' : '➕ เพิ่มบันทึก'}</h3>
@@ -189,6 +227,7 @@ export default function CalendarPage() {
 
                         <form onSubmit={handleSubmit}>
                             <div className="modal-body">
+                                {error && <div className="alert alert-danger">{error}</div>}
                                 <div className="form-group">
                                     <label className="form-label">วันที่</label>
                                     <input

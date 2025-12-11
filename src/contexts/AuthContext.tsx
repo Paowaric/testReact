@@ -1,94 +1,86 @@
 // src/contexts/AuthContext.tsx
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import type { User, UserRole } from '../types/types';
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import type { UserRole } from '../types/types';
+import { AuthApi, TokenService } from '../services/ApiService';
+
+interface AuthUser {
+    id: number;
+    username: string;
+    role: UserRole;
+    name: string;
+    createdAt: string;
+}
 
 interface AuthContextType {
-    user: User | null;
+    user: AuthUser | null;
     isAuthenticated: boolean;
-    login: (username: string, password: string) => Promise<boolean>;
+    isLoading: boolean;
+    login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
     logout: () => void;
-    register: (username: string, password: string, name: string, role?: UserRole) => Promise<boolean>;
+    register: (username: string, password: string, name: string) => Promise<{ success: boolean; error?: string }>;
     hasRole: (role: UserRole) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-const USERS_KEY = 'chicken_business_users';
-const CURRENT_USER_KEY = 'chicken_business_current_user';
-
-// Default admin account
-const DEFAULT_ADMIN: User = {
-    id: 'admin-001',
-    username: 'admin',
-    password: 'admin123',
-    role: 'admin',
-    name: 'ผู้ดูแลระบบ',
-    createdAt: new Date().toISOString(),
-};
-
-function getStoredUsers(): User[] {
-    const stored = localStorage.getItem(USERS_KEY);
-    if (stored) {
-        return JSON.parse(stored);
-    }
-    // Initialize with default admin
-    localStorage.setItem(USERS_KEY, JSON.stringify([DEFAULT_ADMIN]));
-    return [DEFAULT_ADMIN];
-}
-
-function saveUsers(users: User[]) {
-    localStorage.setItem(USERS_KEY, JSON.stringify(users));
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-    const [user, setUser] = useState<User | null>(() => {
-        const stored = localStorage.getItem(CURRENT_USER_KEY);
-        return stored ? JSON.parse(stored) : null;
-    });
+    const [user, setUser] = useState<AuthUser | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
 
+    // Check for existing token on mount
     useEffect(() => {
-        if (user) {
-            localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
-        } else {
-            localStorage.removeItem(CURRENT_USER_KEY);
-        }
-    }, [user]);
+        const initAuth = async () => {
+            const storedUser = TokenService.getUser();
+            const token = TokenService.getToken();
 
-    const login = async (username: string, password: string): Promise<boolean> => {
-        const users = getStoredUsers();
-        const found = users.find(u => u.username === username && u.password === password);
-        if (found) {
-            setUser(found);
-            return true;
+            if (token && storedUser) {
+                try {
+                    // Verify token is still valid by fetching profile
+                    const profile = await AuthApi.getProfile();
+                    setUser(profile);
+                } catch {
+                    // Token invalid, clear everything
+                    TokenService.clear();
+                    setUser(null);
+                }
+            }
+            setIsLoading(false);
+        };
+
+        initAuth();
+    }, []);
+
+    const login = async (username: string, password: string): Promise<{ success: boolean; error?: string }> => {
+        try {
+            const result = await AuthApi.login(username, password);
+            if (result.access_token) {
+                setUser(result.user);
+                return { success: true };
+            }
+            return { success: false, error: 'เข้าสู่ระบบไม่สำเร็จ' };
+        } catch (error: any) {
+            console.error('Login error:', error);
+            return { success: false, error: error.message || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง' };
         }
-        return false;
     };
 
     const logout = () => {
+        AuthApi.logout();
         setUser(null);
     };
 
     const register = async (
         username: string,
         password: string,
-        name: string,
-        role: UserRole = 'staff'
-    ): Promise<boolean> => {
-        const users = getStoredUsers();
-        if (users.find(u => u.username === username)) {
-            return false; // Username already exists
+        name: string
+    ): Promise<{ success: boolean; error?: string }> => {
+        try {
+            await AuthApi.register(username, password, name);
+            return { success: true };
+        } catch (error: any) {
+            console.error('Register error:', error);
+            return { success: false, error: error.message || 'ลงทะเบียนไม่สำเร็จ' };
         }
-        const newUser: User = {
-            id: `user-${Date.now()}`,
-            username,
-            password,
-            role,
-            name,
-            createdAt: new Date().toISOString(),
-        };
-        users.push(newUser);
-        saveUsers(users);
-        return true;
     };
 
     const hasRole = (role: UserRole): boolean => {
@@ -101,6 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         <AuthContext.Provider value={{
             user,
             isAuthenticated: !!user,
+            isLoading,
             login,
             logout,
             register,

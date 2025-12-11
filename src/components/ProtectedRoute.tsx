@@ -9,8 +9,12 @@ interface ProtectedRouteProps {
 }
 
 export default function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
-    const { isAuthenticated, hasRole } = useAuth();
+    const { isAuthenticated, hasRole, isLoading } = useAuth();
     const location = useLocation();
+
+    if (isLoading) {
+        return <div className="loading-container"><div className="loading-spinner">🐔</div></div>;
+    }
 
     if (!isAuthenticated) {
         return <Navigate to="/login" state={{ from: location }} replace />;

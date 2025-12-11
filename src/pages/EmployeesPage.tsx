@@ -11,13 +11,38 @@ export default function EmployeesPage() {
     const [showForm, setShowForm] = useState(false);
     const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [loading, setLoading] = useState(true);
+    const [employeeStats, setEmployeeStats] = useState<Map<string, { weeklyTotal: number; monthlyTotal: number }>>(new Map());
 
     useEffect(() => {
         loadData();
     }, []);
 
-    const loadData = () => {
-        setEmployees(EmployeeService.getAll());
+    const loadData = async () => {
+        try {
+            setLoading(true);
+            const employeesData = await EmployeeService.getAll();
+            setEmployees(employeesData);
+
+            // Calculate stats for each employee
+            const now = new Date();
+            const statsMap = new Map<string, { weeklyTotal: number; monthlyTotal: number }>();
+
+            for (const emp of employeesData) {
+                const monthlyTotal = await DailyWageService.getMonthlyTotal(
+                    emp.id,
+                    now.getFullYear(),
+                    now.getMonth() + 1
+                );
+                // For weekly we'll estimate from monthly for now (API doesn't have weekly endpoint)
+                statsMap.set(emp.id, { weeklyTotal: 0, monthlyTotal });
+            }
+            setEmployeeStats(statsMap);
+        } catch (error) {
+            console.error('Failed to load employees:', error);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleAddEmployee = () => {
@@ -30,9 +55,9 @@ export default function EmployeesPage() {
         setShowForm(true);
     };
 
-    const handleDeleteEmployee = (id: string) => {
+    const handleDeleteEmployee = async (id: string) => {
         if (confirm('ต้องการลบพนักงานคนนี้?')) {
-            EmployeeService.delete(id);
+            await EmployeeService.delete(id);
             loadData();
         }
     };
@@ -53,17 +78,20 @@ export default function EmployeesPage() {
         emp.phone.includes(searchTerm)
     );
 
-    const getWeeklyTotal = (employeeId: string) => {
-        const today = new Date();
-        const startOfWeek = new Date(today);
-        startOfWeek.setDate(today.getDate() - today.getDay());
-        return DailyWageService.getWeeklyTotal(employeeId, startOfWeek);
+    const getStats = (employeeId: string) => {
+        return employeeStats.get(employeeId) || { weeklyTotal: 0, monthlyTotal: 0 };
     };
 
-    const getMonthlyTotal = (employeeId: string) => {
-        const now = new Date();
-        return DailyWageService.getMonthlyTotal(employeeId, now.getFullYear(), now.getMonth() + 1);
-    };
+    if (loading) {
+        return (
+            <div className="page-container">
+                <div className="loading-container">
+                    <div className="loading-spinner">🐔</div>
+                    <p>กำลังโหลดข้อมูล...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="page-container">
@@ -100,16 +128,19 @@ export default function EmployeesPage() {
                 </div>
             ) : (
                 <div className="employees-grid">
-                    {filteredEmployees.map((employee) => (
-                        <EmployeeCard
-                            key={employee.id}
-                            employee={employee}
-                            weeklyTotal={getWeeklyTotal(employee.id)}
-                            monthlyTotal={getMonthlyTotal(employee.id)}
-                            onEdit={() => handleEditEmployee(employee)}
-                            onDelete={() => handleDeleteEmployee(employee.id)}
-                        />
-                    ))}
+                    {filteredEmployees.map((employee) => {
+                        const stats = getStats(employee.id);
+                        return (
+                            <EmployeeCard
+                                key={employee.id}
+                                employee={employee}
+                                weeklyTotal={stats.weeklyTotal}
+                                monthlyTotal={stats.monthlyTotal}
+                                onEdit={() => handleEditEmployee(employee)}
+                                onDelete={() => handleDeleteEmployee(employee.id)}
+                            />
+                        );
+                    })}
                 </div>
             )}
 

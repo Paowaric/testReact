@@ -38,13 +38,13 @@ export default function RegisterPage() {
         setLoading(true);
 
         try {
-            const success = await register(username, password, name, 'staff');
-            if (success) {
+            const result = await register(username, password, name);
+            if (result.success) {
                 navigate('/login', {
                     state: { message: 'สมัครสมาชิกสำเร็จ กรุณาเข้าสู่ระบบ' }
                 });
             } else {
-                setError('ชื่อผู้ใช้นี้มีอยู่แล้ว');
+                setError(result.error || 'ชื่อผู้ใช้นี้มีอยู่แล้ว');
             }
         } finally {
             setLoading(false);

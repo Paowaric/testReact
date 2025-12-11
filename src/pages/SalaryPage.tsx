@@ -14,6 +14,8 @@ export default function SalaryPage() {
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
     const [showForm, setShowForm] = useState(false);
     const [editingWage, setEditingWage] = useState<DailyWage | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [employeeStats, setEmployeeStats] = useState<{ weeklyTotal: number; monthlyTotal: number }>({ weeklyTotal: 0, monthlyTotal: 0 });
 
     useEffect(() => {
         loadData();
@@ -24,19 +26,40 @@ export default function SalaryPage() {
     }, [searchParams]);
 
     useEffect(() => {
-        if (selectedEmployeeId) {
-            setWages(DailyWageService.getByEmployee(selectedEmployeeId));
-        } else {
-            setWages(DailyWageService.getAll());
-        }
+        loadWages();
     }, [selectedEmployeeId]);
 
-    const loadData = () => {
-        setEmployees(EmployeeService.getAll());
-        if (selectedEmployeeId) {
-            setWages(DailyWageService.getByEmployee(selectedEmployeeId));
-        } else {
-            setWages(DailyWageService.getAll());
+    const loadData = async () => {
+        try {
+            setLoading(true);
+            const employeesData = await EmployeeService.getAll();
+            setEmployees(employeesData);
+        } catch (error) {
+            console.error('Failed to load data:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const loadWages = async () => {
+        try {
+            let wagesData: DailyWage[];
+            if (selectedEmployeeId) {
+                wagesData = await DailyWageService.getByEmployee(selectedEmployeeId);
+                // Load stats for selected employee
+                const now = new Date();
+                const monthlyTotal = await DailyWageService.getMonthlyTotal(
+                    selectedEmployeeId,
+                    now.getFullYear(),
+                    now.getMonth() + 1
+                );
+                setEmployeeStats({ weeklyTotal: 0, monthlyTotal });
+            } else {
+                wagesData = await DailyWageService.getAll();
+            }
+            setWages(wagesData);
+        } catch (error) {
+            console.error('Failed to load wages:', error);
         }
     };
 
@@ -50,29 +73,17 @@ export default function SalaryPage() {
         setShowForm(true);
     };
 
-    const handleDeleteWage = (id: string) => {
+    const handleDeleteWage = async (id: string) => {
         if (confirm('ต้องการลบรายการนี้?')) {
-            DailyWageService.delete(id);
-            loadData();
+            await DailyWageService.delete(id);
+            loadWages();
         }
     };
 
     const handleFormSubmit = () => {
         setShowForm(false);
         setEditingWage(null);
-        loadData();
-    };
-
-    const getWeeklyTotal = (employeeId: string) => {
-        const today = new Date();
-        const startOfWeek = new Date(today);
-        startOfWeek.setDate(today.getDate() - today.getDay());
-        return DailyWageService.getWeeklyTotal(employeeId, startOfWeek);
-    };
-
-    const getMonthlyTotal = (employeeId: string) => {
-        const now = new Date();
-        return DailyWageService.getMonthlyTotal(employeeId, now.getFullYear(), now.getMonth() + 1);
+        loadWages();
     };
 
     const selectedEmployee = employees.find(e => e.id === selectedEmployeeId);
@@ -90,6 +101,17 @@ export default function SalaryPage() {
             year: 'numeric',
         });
     };
+
+    if (loading) {
+        return (
+            <div className="page-container">
+                <div className="loading-container">
+                    <div className="loading-spinner">🐔</div>
+                    <p>กำลังโหลดข้อมูล...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="page-container">
@@ -144,14 +166,14 @@ export default function SalaryPage() {
                     <div className="stat-card">
                         <div className="stat-icon">📅</div>
                         <div>
-                            <div className="stat-value">฿{getWeeklyTotal(selectedEmployee.id).toLocaleString()}</div>
+                            <div className="stat-value">฿{employeeStats.weeklyTotal.toLocaleString()}</div>
                             <div className="stat-label">สัปดาห์นี้</div>
                         </div>
                     </div>
                     <div className="stat-card stat-card-gradient">
                         <div className="stat-icon">📊</div>
                         <div>
-                            <div className="stat-value">฿{getMonthlyTotal(selectedEmployee.id).toLocaleString()}</div>
+                            <div className="stat-value">฿{employeeStats.monthlyTotal.toLocaleString()}</div>
                             <div className="stat-label">เดือนนี้</div>
                         </div>
                     </div>

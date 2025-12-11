@@ -10,6 +10,9 @@ export default function CustomersPage() {
     const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [viewingHistory, setViewingHistory] = useState<{ customer: Customer; orders: Order[] } | null>(null);
+    const [inactiveCustomers, setInactiveCustomers] = useState<Customer[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [customerStats, setCustomerStats] = useState<Map<string, { orderCount: number; totalSpent: number }>>(new Map());
 
     // Form state
     const [name, setName] = useState('');
@@ -21,8 +24,37 @@ export default function CustomersPage() {
         loadData();
     }, []);
 
-    const loadData = () => {
-        setCustomers(CustomerService.getAll());
+    const loadData = async () => {
+        try {
+            setLoading(true);
+            const [customersData, inactiveData, ordersData] = await Promise.all([
+                CustomerService.getAll(),
+                CustomerService.getInactiveCustomers(),
+                OrderService.getAll(),
+            ]);
+
+            setCustomers(customersData);
+            setInactiveCustomers(inactiveData);
+
+            // Calculate stats for each customer
+            const statsMap = new Map<string, { orderCount: number; totalSpent: number }>();
+            customersData.forEach(customer => {
+                const validOrders = ordersData.filter(o => o.customerId === customer.id && o.status !== 'cancelled');
+                const completedOrders = validOrders.filter(o => o.status === 'completed');
+
+                const total = completedOrders.reduce((sum, o) => sum + Number(o.totalAmount), 0);
+
+                statsMap.set(customer.id, {
+                    orderCount: validOrders.length,
+                    totalSpent: total
+                });
+            });
+            setCustomerStats(statsMap);
+        } catch (error) {
+            console.error('Failed to load customers:', error);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const resetForm = () => {
@@ -47,30 +79,56 @@ export default function CustomersPage() {
         setShowForm(true);
     };
 
-    const handleDeleteCustomer = (id: string) => {
+    const handleDeleteCustomer = async (id: string) => {
         if (confirm('ต้องการลบลูกค้านี้?')) {
-            CustomerService.delete(id);
+            await CustomerService.delete(id);
             loadData();
         }
     };
 
-    const handleViewHistory = (customer: Customer) => {
-        const orders = OrderService.getByCustomer(customer.id);
-        setViewingHistory({ customer, orders });
+    const handleViewHistory = async (customer: Customer) => {
+        try {
+            const orders = await OrderService.getByCustomer(customer.id);
+            setViewingHistory({ customer, orders });
+        } catch (error) {
+            console.error('Failed to load order history:', error);
+        }
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
+    const [error, setError] = useState('');
 
-        if (editingCustomer) {
-            CustomerService.update(editingCustomer.id, { name, phone, address, notes });
-        } else {
-            CustomerService.create({ name, phone, address, notes });
+    const validateForm = (): boolean => {
+        if (!name.trim()) {
+            setError('กรุณากรอกชื่อลูกค้า');
+            return false;
         }
+        if (phone && !/^\d{10}$/.test(phone)) {
+            setError('เบอร์โทรศัพท์ต้องเป็นตัวเลข 10 หลัก');
+            return false;
+        }
+        return true;
+    };
 
-        setShowForm(false);
-        resetForm();
-        loadData();
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+
+        if (!validateForm()) return;
+
+        try {
+            if (editingCustomer) {
+                await CustomerService.update(editingCustomer.id, { name, phone, address, notes });
+            } else {
+                await CustomerService.create({ name, phone, address, notes });
+            }
+
+            setShowForm(false);
+            resetForm();
+            loadData();
+        } catch (error) {
+            console.error('Failed to save customer:', error);
+            setError('เกิดข้อผิดพลาดในการบันทึก');
+        }
     };
 
     const filteredCustomers = customers.filter(c =>
@@ -79,12 +137,19 @@ export default function CustomersPage() {
     );
 
     const getCustomerStats = (customerId: string) => {
-        const orders = OrderService.getByCustomer(customerId);
-        const total = orders.reduce((sum, o) => sum + o.totalAmount, 0);
-        return { orderCount: orders.length, totalSpent: total };
+        return customerStats.get(customerId) || { orderCount: 0, totalSpent: 0 };
     };
 
-    const inactiveCustomers = CustomerService.getInactiveCustomers(14);
+    if (loading) {
+        return (
+            <div className="page-container">
+                <div className="loading-container">
+                    <div className="loading-spinner">🐔</div>
+                    <p>กำลังโหลดข้อมูล...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="page-container">
@@ -150,7 +215,11 @@ export default function CustomersPage() {
                                             <strong>{customer.name}</strong>
                                             {isInactive && <span className="badge badge-warning" style={{ marginLeft: '0.5rem' }}>ไม่ได้สั่งนาน</span>}
                                         </td>
-                                        <td>{customer.phone || '-'}</td>
+                                        <td>
+                                            {customer.phone
+                                                ? customer.phone.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3')
+                                                : '-'}
+                                        </td>
                                         <td>{customer.address || '-'}</td>
                                         <td>{stats.orderCount} ครั้ง</td>
                                         <td className="amount-cell">฿{stats.totalSpent.toLocaleString()}</td>
@@ -178,7 +247,7 @@ export default function CustomersPage() {
 
             {/* Add/Edit Form Modal */}
             {showForm && (
-                <div className="modal-overlay" onClick={() => setShowForm(false)}>
+                <div className="modal-overlay">
                     <div className="modal" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
                             <h3 className="modal-title">{editingCustomer ? '✏️ แก้ไขลูกค้า' : '➕ เพิ่มลูกค้า'}</h3>
@@ -187,6 +256,7 @@ export default function CustomersPage() {
 
                         <form onSubmit={handleSubmit}>
                             <div className="modal-body">
+                                {error && <div className="alert alert-danger">{error}</div>}
                                 <div className="form-group">
                                     <label className="form-label">ชื่อลูกค้า *</label>
                                     <input
@@ -249,7 +319,7 @@ export default function CustomersPage() {
 
             {/* Order History Modal */}
             {viewingHistory && (
-                <div className="modal-overlay" onClick={() => setViewingHistory(null)}>
+                <div className="modal-overlay">
                     <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '700px' }}>
                         <div className="modal-header">
                             <h3 className="modal-title">📋 ประวัติการสั่งซื้อ: {viewingHistory.customer.name}</h3>
@@ -264,15 +334,47 @@ export default function CustomersPage() {
                             ) : (
                                 <div className="order-history-list">
                                     {viewingHistory.orders.map(order => (
-                                        <div key={order.id} className="order-history-item card">
-                                            <div className="order-history-header">
-                                                <span>{new Date(order.createdAt).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                                                <span className="badge badge-primary">฿{order.totalAmount.toLocaleString()}</span>
+                                        <div key={order.id} className="order-history-item">
+                                            <div className="history-item-header">
+                                                <div className="history-date">
+                                                    <span className="calendar-icon">📅</span>
+                                                    {new Date(order.createdAt).toLocaleDateString('th-TH', {
+                                                        day: 'numeric',
+                                                        month: 'long',
+                                                        year: 'numeric',
+                                                        hour: '2-digit',
+                                                        minute: '2-digit'
+                                                    })}
+                                                </div>
+                                                <div className="history-status">
+                                                    <span className={`status-badge status-${order.status}`}>
+                                                        {order.status === 'completed' ? '✅ เสร็จสิ้น' :
+                                                            order.status === 'cancelled' ? '❌ ยกเลิก' : '⏳ รอดำเนินการ'}
+                                                    </span>
+                                                    <span className="history-total">฿{order.totalAmount.toLocaleString()}</span>
+                                                </div>
                                             </div>
-                                            <div className="order-history-items">
-                                                {order.items.map((item, idx) => (
-                                                    <span key={idx}>{item.chickenPartName} ({item.quantity}กก.)</span>
-                                                ))}
+                                            <div className="history-item-body">
+                                                <table className="history-items-table">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>สินค้า</th>
+                                                            <th className="text-right">จำนวน</th>
+                                                            <th className="text-right">ราคา/หน่วย</th>
+                                                            <th className="text-right">รวม</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {order.items.map((item, idx) => (
+                                                            <tr key={idx}>
+                                                                <td>{item.chickenPartName}</td>
+                                                                <td className="text-right">{item.quantity} กก.</td>
+                                                                <td className="text-right">฿{item.pricePerKg}</td>
+                                                                <td className="text-right">฿{item.total.toLocaleString()}</td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
                                             </div>
                                         </div>
                                     ))}

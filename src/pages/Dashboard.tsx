@@ -24,6 +24,7 @@ export default function Dashboard() {
   });
   const [lowStockItems, setLowStockItems] = useState<ChickenPart[]>([]);
   const [inactiveCustomers, setInactiveCustomers] = useState<Customer[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Initialize demo data on first load
@@ -31,22 +32,62 @@ export default function Dashboard() {
     loadStats();
   }, []);
 
-  const loadStats = () => {
-    setStats({
-      todayRevenue: OrderService.getTodayRevenue(),
-      monthlyRevenue: OrderService.getMonthlyRevenue(),
-      todayWages: DailyWageService.getTodayTotal(),
-      monthlyWages: DailyWageService.getMonthTotal(),
-      totalCustomers: CustomerService.getAll().length,
-      totalEmployees: EmployeeService.getAll().length,
-      totalOrders: OrderService.getAll().length,
-    });
-    setLowStockItems(ChickenPartService.getLowStock(15));
-    setInactiveCustomers(CustomerService.getInactiveCustomers(14));
+  const loadStats = async () => {
+    try {
+      setLoading(true);
+      const [
+        todayRevenue,
+        monthlyRevenue,
+        todayWages,
+        monthlyWages,
+        customers,
+        employees,
+        orders,
+        lowStock,
+        inactive
+      ] = await Promise.all([
+        OrderService.getTodayRevenue(),
+        OrderService.getMonthlyRevenue(),
+        DailyWageService.getTodayTotal(),
+        DailyWageService.getMonthTotal(),
+        CustomerService.getAll(),
+        EmployeeService.getAll(),
+        OrderService.getAll(),
+        ChickenPartService.getLowStock(),
+        CustomerService.getInactiveCustomers(),
+      ]);
+
+      setStats({
+        todayRevenue,
+        monthlyRevenue,
+        todayWages,
+        monthlyWages,
+        totalCustomers: customers.length,
+        totalEmployees: employees.length,
+        totalOrders: orders.length,
+      });
+      setLowStockItems(lowStock);
+      setInactiveCustomers(inactive);
+    } catch (error) {
+      console.error('Failed to load dashboard stats:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const todayProfit = stats.todayRevenue - stats.todayWages;
   const monthlyProfit = stats.monthlyRevenue - stats.monthlyWages;
+
+  if (loading) {
+    return (
+      <div className="page-container">
+        <div className="loading-container">
+          <div className="loading-spinner">🐔</div>
+          <p>กำลังโหลดข้อมูล...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="page-container">

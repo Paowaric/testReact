@@ -14,15 +14,34 @@ export default function OrdersPage() {
     const [editingOrder, setEditingOrder] = useState<Order | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<string>('all');
+    const [loading, setLoading] = useState(true);
+    const [todayRevenue, setTodayRevenue] = useState(0);
+    const [monthlyRevenue, setMonthlyRevenue] = useState(0);
 
     useEffect(() => {
         loadData();
     }, []);
 
-    const loadData = () => {
-        setOrders(OrderService.getAll());
-        setCustomers(CustomerService.getAll());
-        setChickenParts(ChickenPartService.getAll());
+    const loadData = async () => {
+        try {
+            setLoading(true);
+            const [ordersData, customersData, partsData, todayRev, monthlyRev] = await Promise.all([
+                OrderService.getAll(),
+                CustomerService.getAll(),
+                ChickenPartService.getAll(),
+                OrderService.getTodayRevenue(),
+                OrderService.getMonthlyRevenue(),
+            ]);
+            setOrders(ordersData);
+            setCustomers(customersData);
+            setChickenParts(partsData);
+            setTodayRevenue(todayRev);
+            setMonthlyRevenue(monthlyRev);
+        } catch (error) {
+            console.error('Failed to load orders:', error);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleAddOrder = () => {
@@ -35,9 +54,9 @@ export default function OrdersPage() {
         setShowForm(true);
     };
 
-    const handleDeleteOrder = (id: string) => {
+    const handleDeleteOrder = async (id: string) => {
         if (confirm('ต้องการลบออเดอร์นี้?')) {
-            OrderService.delete(id);
+            await OrderService.delete(id);
             loadData();
         }
     };
@@ -53,15 +72,28 @@ export default function OrdersPage() {
         setEditingOrder(null);
     };
 
+    const handleUpdateStatus = async (id: string, status: Order['status']) => {
+        await OrderService.update(id, { status });
+        loadData();
+    };
+
     const filteredOrders = orders.filter(order => {
-        const matchesSearch = order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            order.items.some(item => item.chickenPartName.toLowerCase().includes(searchTerm.toLowerCase()));
+        const matchesSearch = (order.customerName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            order.items.some(item => (item.chickenPartName || '').toLowerCase().includes(searchTerm.toLowerCase()));
         const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
         return matchesSearch && matchesStatus;
     });
 
-    const todayRevenue = OrderService.getTodayRevenue();
-    const monthlyRevenue = OrderService.getMonthlyRevenue();
+    if (loading) {
+        return (
+            <div className="page-container">
+                <div className="loading-container">
+                    <div className="loading-spinner">🐔</div>
+                    <p>กำลังโหลดข้อมูล...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="page-container">
@@ -135,12 +167,10 @@ export default function OrdersPage() {
             {/* Table */}
             <OrderTable
                 orders={filteredOrders}
+                customers={customers}
                 onEdit={handleEditOrder}
                 onDelete={handleDeleteOrder}
-                onUpdateStatus={(id, status) => {
-                    OrderService.update(id, { status });
-                    loadData();
-                }}
+                onUpdateStatus={handleUpdateStatus}
             />
 
             {/* Form Modal */}

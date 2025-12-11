@@ -92,7 +92,7 @@
     gap: var(--space-xs);
 }
 
-/* Order Form */
+/* Order Form Stlying */
 .order-items-list {
     display: flex;
     flex-direction: column;
@@ -104,12 +104,22 @@
     gap: var(--space-sm);
     align-items: center;
     padding: var(--space-sm);
-    background-color: var(--bg-secondary);
-    border-radius: var(--radius-md);
+    background-color: var(--bg-tertiary);
+    /* Card style background */
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    transition: border-color var(--transition-fast);
+}
+
+.order-item-row:hover {
+    border-color: var(--primary-500);
+    /* Highlight on hover */
 }
 
 .order-item-row select {
     flex: 2;
+    background-color: var(--bg-card) !important;
+    /* Context contrast */
 }
 
 .qty-input {
@@ -117,27 +127,104 @@
     flex: none !important;
 }
 
+/* Rounded Pill Quantity Input */
+.quantity-wrapper {
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-full);
+    /* Pill shape */
+    background-color: var(--bg-card);
+    overflow: hidden;
+    height: 42px;
+}
+
+.quantity-wrapper .input {
+    border: none;
+    border-radius: 0;
+    text-align: center;
+    width: 60px !important;
+    padding: 0;
+    font-weight: 600;
+    background: transparent;
+    -moz-appearance: textfield;
+}
+
+.quantity-wrapper .input:focus {
+    box-shadow: none;
+}
+
+/* Hide native spin buttons */
+.quantity-wrapper .input::-webkit-outer-spin-button,
+.quantity-wrapper .input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.btn-quantity {
+    background: transparent;
+    color: var(--text-secondary);
+    border: none;
+    width: 32px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    font-size: 1.2rem;
+    font-weight: 400;
+}
+
+.btn-quantity:hover {
+    background-color: var(--bg-hover);
+    color: var(--primary-500);
+}
+
+.btn-quantity:active {
+    background-color: var(--border-color);
+}
+
+/* Dashed Add Button */
+.btn-dashed {
+    background-color: transparent;
+    border: 2px dashed var(--border-color);
+    color: var(--text-secondary);
+    transition: all var(--transition-fast);
+    padding: var(--space-sm);
+}
+
+.btn-dashed:hover {
+    border-color: var(--primary-500);
+    color: var(--primary-500);
+    background-color: var(--bg-hover);
+}
+
 .item-subtotal {
     width: 100px;
     text-align: right;
-    font-weight: 600;
-    color: var(--primary-600);
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--primary-500);
 }
 
 .order-total {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--space-md);
+    padding: var(--space-lg);
     background: var(--gradient-primary);
     color: white;
-    border-radius: var(--radius-md);
-    font-size: 1.1rem;
+    border-radius: var(--radius-xl);
+    font-size: 1.25rem;
+    box-shadow: var(--shadow-lg);
+    margin-top: var(--space-md);
 }
 
 .total-amount {
-    font-size: 1.5rem;
-    font-weight: 700;
+    font-size: 2rem;
+    font-weight: 800;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 /* Responsive */

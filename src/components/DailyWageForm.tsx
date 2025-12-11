@@ -1,6 +1,6 @@
 // src/components/DailyWageForm.tsx
 import { useState, useEffect } from 'react';
-import { DailyWageService, EmployeeService } from '../services/DataService';
+import { DailyWageService } from '../services/DataService';
 import type { DailyWage, Employee } from '../types/types';
 
 interface DailyWageFormProps {
@@ -72,7 +72,7 @@ export default function DailyWageForm({
         }
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
 
@@ -81,7 +81,12 @@ export default function DailyWageForm({
             return;
         }
 
-        const employee = EmployeeService.getById(employeeId);
+        if (!date) {
+            setError('กรุณาเลือกวันที่');
+            return;
+        }
+
+        const employee = employees.find(emp => emp.id === employeeId);
         if (!employee) {
             setError('ไม่พบพนักงาน');
             return;
@@ -99,17 +104,22 @@ export default function DailyWageForm({
             notes,
         };
 
-        if (wage) {
-            DailyWageService.update(wage.id, wageData);
-        } else {
-            DailyWageService.create(wageData);
-        }
+        try {
+            if (wage) {
+                await DailyWageService.update(wage.id, wageData);
+            } else {
+                await DailyWageService.create(wageData);
+            }
 
-        onSubmit();
+            onSubmit();
+        } catch (error) {
+            console.error('Failed to save wage:', error);
+            setError('เกิดข้อผิดพลาดในการบันทึก');
+        }
     };
 
     return (
-        <div className="modal-overlay" onClick={onCancel}>
+        <div className="modal-overlay">
             <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '550px' }}>
                 <div className="modal-header">
                     <h3 className="modal-title">{wage ? '✏️ แก้ไขบันทึก' : '💰 บันทึกเงินรายวัน'}</h3>

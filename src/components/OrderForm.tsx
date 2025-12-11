@@ -20,7 +20,13 @@ export default function OrderForm({ order, customers, chickenParts, onSubmit, on
     useEffect(() => {
         if (order) {
             setCustomerId(order.customerId);
-            setItems(order.items);
+            setItems(order.items.map(i => ({
+                ...i,
+                chickenPartId: String(i.chickenPartId),
+                quantity: Number(i.quantity),
+                pricePerKg: Number(i.pricePerKg),
+                total: Number(i.total)
+            })));
             setNotes(order.notes);
         } else {
             // Default empty item
@@ -47,9 +53,9 @@ export default function OrderForm({ order, customers, chickenParts, onSubmit, on
         const item = { ...newItems[index] };
 
         if (field === 'chickenPartId') {
-            const part = chickenParts.find(p => p.id === value);
+            const part = chickenParts.find(p => String(p.id) === String(value));
             if (part) {
-                item.chickenPartId = part.id;
+                item.chickenPartId = String(part.id);
                 item.chickenPartName = part.name;
                 item.pricePerKg = part.pricePerKg;
                 item.total = item.quantity * part.pricePerKg;
@@ -64,7 +70,7 @@ export default function OrderForm({ order, customers, chickenParts, onSubmit, on
     };
 
     const getTotalAmount = () => {
-        return items.reduce((sum, item) => sum + item.total, 0);
+        return items.reduce((sum, item) => sum + Number(item.total), 0);
     };
 
     const validate = (): boolean => {
@@ -78,9 +84,18 @@ export default function OrderForm({ order, customers, chickenParts, onSubmit, on
             errs.push('กรุณาเพิ่มรายการสินค้าอย่างน้อย 1 รายการ');
         }
 
+        const selectedParts = new Set<string>();
         items.forEach((item, idx) => {
-            if (item.chickenPartId && item.quantity <= 0) {
-                errs.push(`รายการที่ ${idx + 1}: จำนวนต้องมากกว่า 0`);
+            if (item.chickenPartId) {
+                const partId = String(item.chickenPartId);
+                if (selectedParts.has(partId)) {
+                    errs.push(`รายการที่ ${idx + 1}: สินค้าซ้ำกับรายการอื่น`);
+                }
+                selectedParts.add(partId);
+
+                if (item.quantity <= 0) {
+                    errs.push(`รายการที่ ${idx + 1}: จำนวนต้องมากกว่า 0`);
+                }
             }
         });
 
@@ -88,7 +103,7 @@ export default function OrderForm({ order, customers, chickenParts, onSubmit, on
         return errs.length === 0;
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         if (!validate()) return;
@@ -96,27 +111,32 @@ export default function OrderForm({ order, customers, chickenParts, onSubmit, on
         const customer = customers.find(c => c.id === customerId)!;
         const validItems = items.filter(i => i.chickenPartId);
 
-        if (order) {
-            OrderService.update(order.id, {
-                customerId,
-                customerName: customer.name,
-                items: validItems,
-                notes,
-            });
-        } else {
-            OrderService.create({
-                customerId,
-                customerName: customer.name,
-                items: validItems,
-                notes,
-            });
-        }
+        try {
+            if (order) {
+                await OrderService.update(order.id, {
+                    customerId,
+                    customerName: customer.name,
+                    items: validItems,
+                    notes,
+                });
+            } else {
+                await OrderService.create({
+                    customerId,
+                    customerName: customer.name,
+                    items: validItems,
+                    notes,
+                });
+            }
 
-        onSubmit();
+            onSubmit();
+        } catch (error) {
+            console.error('Failed to save order:', error);
+            setErrors(['เกิดข้อผิดพลาดในการบันทึก']);
+        }
     };
 
     return (
-        <div className="modal-overlay" onClick={onCancel}>
+        <div className="modal-overlay">
             <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '700px' }}>
                 <div className="modal-header">
                     <h3 className="modal-title">{order ? '✏️ แก้ไขออเดอร์' : '➕ เพิ่มออเดอร์'}</h3>
@@ -157,22 +177,52 @@ export default function OrderForm({ order, customers, chickenParts, onSubmit, on
                                             onChange={(e) => updateItem(index, 'chickenPartId', e.target.value)}
                                         >
                                             <option value="">เลือกชิ้นส่วนไก่...</option>
-                                            {chickenParts.map(p => (
-                                                <option key={p.id} value={p.id}>
-                                                    {p.name} (฿{p.pricePerKg}/กก. - สต็อก: {p.stock})
-                                                </option>
-                                            ))}
+                                            {chickenParts.map(p => {
+                                                const isSelectedInOtherRow = items.some((i, iIdx) => iIdx !== index && String(i.chickenPartId) === String(p.id));
+                                                return (
+                                                    <option
+                                                        key={p.id}
+                                                        value={p.id}
+                                                        disabled={isSelectedInOtherRow}
+                                                        style={isSelectedInOtherRow ? { color: 'var(--text-muted)' } : {}}
+                                                    >
+                                                        {p.name} (฿{p.pricePerKg}/กก. - สต็อก: {p.stock}){isSelectedInOtherRow ? ' (เลือกแล้ว)' : ''}
+                                                    </option>
+                                                );
+                                            })}
                                         </select>
 
-                                        <input
-                                            type="number"
-                                            className="input qty-input"
-                                            value={item.quantity}
-                                            onChange={(e) => updateItem(index, 'quantity', e.target.value)}
-                                            min="0.1"
-                                            step="0.1"
-                                            placeholder="จำนวน (กก.)"
-                                        />
+                                        <div className="quantity-wrapper">
+                                            <button
+                                                type="button"
+                                                className="btn-quantity"
+                                                onClick={() => {
+                                                    const newValue = Math.max(0.1, Number(item.quantity) - 1);
+                                                    updateItem(index, 'quantity', newValue);
+                                                }}
+                                            >
+                                                -
+                                            </button>
+                                            <input
+                                                type="number"
+                                                className="input qty-input"
+                                                value={item.quantity}
+                                                onChange={(e) => updateItem(index, 'quantity', e.target.value)}
+                                                min="0.1"
+                                                step="0.1"
+                                                placeholder="0.0"
+                                            />
+                                            <button
+                                                type="button"
+                                                className="btn-quantity"
+                                                onClick={() => {
+                                                    const newValue = Number(item.quantity) + 1;
+                                                    updateItem(index, 'quantity', newValue);
+                                                }}
+                                            >
+                                                +
+                                            </button>
+                                        </div>
 
                                         <span className="item-subtotal">
                                             ฿{item.total.toLocaleString()}
@@ -188,7 +238,7 @@ export default function OrderForm({ order, customers, chickenParts, onSubmit, on
                                     </div>
                                 ))}
 
-                                <button type="button" className="btn btn-secondary" onClick={addItem}>
+                                <button type="button" className="btn btn-dashed w-full" onClick={addItem}>
                                     ➕ เพิ่มรายการ
                                 </button>
                             </div>

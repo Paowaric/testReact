@@ -9,6 +9,8 @@ export default function StockPage() {
     const [showForm, setShowForm] = useState(false);
     const [editingPart, setEditingPart] = useState<ChickenPart | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [lowStockParts, setLowStockParts] = useState<ChickenPart[]>([]);
+    const [loading, setLoading] = useState(true);
 
     // Form state
     const [name, setName] = useState('');
@@ -20,8 +22,20 @@ export default function StockPage() {
         loadData();
     }, []);
 
-    const loadData = () => {
-        setParts(ChickenPartService.getAll());
+    const loadData = async () => {
+        try {
+            setLoading(true);
+            const [partsData, lowStockData] = await Promise.all([
+                ChickenPartService.getAll(),
+                ChickenPartService.getLowStock(),
+            ]);
+            setParts(partsData);
+            setLowStockParts(lowStockData);
+        } catch (error) {
+            console.error('Failed to load stock:', error);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const resetForm = () => {
@@ -46,38 +60,74 @@ export default function StockPage() {
         setShowForm(true);
     };
 
-    const handleDeletePart = (id: string) => {
+    const handleDeletePart = async (id: string) => {
         if (confirm('ต้องการลบชิ้นส่วนนี้?')) {
-            ChickenPartService.delete(id);
+            await ChickenPartService.delete(id);
             loadData();
         }
     };
 
-    const handleAdjustStock = (id: string, amount: number) => {
-        ChickenPartService.adjustStock(id, amount);
+    const handleAdjustStock = async (id: string, amount: number) => {
+        await ChickenPartService.adjustStock(id, amount);
         loadData();
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
+    const [error, setError] = useState('');
 
-        if (editingPart) {
-            ChickenPartService.update(editingPart.id, { name, pricePerKg, stock, unit });
-        } else {
-            ChickenPartService.create({ name, pricePerKg, stock, unit });
+    const validateForm = (): boolean => {
+        if (!name.trim()) {
+            setError('กรุณากรอกชื่อชิ้นส่วน');
+            return false;
         }
+        if (pricePerKg < 0) {
+            setError('ราคาต้องไม่ติดลบ');
+            return false;
+        }
+        if (stock < 0) {
+            setError('ปริมาณคงเหลือต้องไม่ติดลบ');
+            return false;
+        }
+        return true;
+    };
 
-        setShowForm(false);
-        resetForm();
-        loadData();
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+
+        if (!validateForm()) return;
+
+        try {
+            if (editingPart) {
+                await ChickenPartService.update(editingPart.id, { name, pricePerKg, stock, unit });
+            } else {
+                await ChickenPartService.create({ name, pricePerKg, stock, unit });
+            }
+
+            setShowForm(false);
+            resetForm();
+            loadData();
+        } catch (error) {
+            console.error('Failed to save part:', error);
+            setError('เกิดข้อผิดพลาดในการบันทึก');
+        }
     };
 
     const filteredParts = parts.filter(p =>
         p.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const lowStockParts = ChickenPartService.getLowStock(15);
-    const totalStockValue = parts.reduce((sum, p) => sum + (p.stock * p.pricePerKg), 0);
+    const totalStockValue = parts.reduce((sum, p) => sum + (Number(p.stock) * Number(p.pricePerKg)), 0);
+
+    if (loading) {
+        return (
+            <div className="page-container">
+                <div className="loading-container">
+                    <div className="loading-spinner">🐔</div>
+                    <p>กำลังโหลดข้อมูล...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="page-container">
@@ -103,7 +153,7 @@ export default function StockPage() {
                 <div className="stat-card">
                     <div className="stat-icon">⚖️</div>
                     <div>
-                        <div className="stat-value">{parts.reduce((sum, p) => sum + p.stock, 0)} กก.</div>
+                        <div className="stat-value">{parts.reduce((sum, p) => sum + Number(p.stock), 0).toLocaleString()} กก.</div>
                         <div className="stat-label">สต็อกทั้งหมด</div>
                     </div>
                 </div>
@@ -223,7 +273,7 @@ export default function StockPage() {
 
             {/* Add/Edit Form Modal */}
             {showForm && (
-                <div className="modal-overlay" onClick={() => setShowForm(false)}>
+                <div className="modal-overlay">
                     <div className="modal" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
                             <h3 className="modal-title">{editingPart ? '✏️ แก้ไขชิ้นส่วน' : '➕ เพิ่มชิ้นส่วนไก่'}</h3>
@@ -232,6 +282,7 @@ export default function StockPage() {
 
                         <form onSubmit={handleSubmit}>
                             <div className="modal-body">
+                                {error && <div className="alert alert-danger">{error}</div>}
                                 <div className="form-group">
                                     <label className="form-label">ชื่อชิ้นส่วน *</label>
                                     <input
